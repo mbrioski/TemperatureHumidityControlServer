@@ -1,21 +1,14 @@
 #include <Ethernet.h>
-
-//TODO set the clock
-//TODO get the data every 5 minutes
-//TODO save on SD In json format
-//TODO transmit the json on a server
-
 #include <SPI.h>
 #include <dht_nonblocking.h>
-#include <LiquidCrystal.h>
+//#include <time.h>
 #define DHT_SENSOR_TYPE DHT_TYPE_11
 
 //TempHumidity server
 byte mac[] = {
   0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED
 };
-// assign an IP address for the controller:
-IPAddress ip(192, 168, 1, 20);
+IPAddress ip(192, 168, 1, 178);
 // Initialize the Ethernet server library
 // with the IP address and port you want to use
 // (port 80 is default for HTTP):
@@ -28,11 +21,8 @@ float humidity;
 //part related to read the senso
 static const int DHT_SENSOR_PIN = 2; //pin of the sensor of temperature and humidity
 const int IS_LCD_ON = 0;
-const int TEMP_INTERVAL = 60000;
+const int TEMP_INTERVAL = 1000;
 DHT_nonblocking dht_sensor( DHT_SENSOR_PIN, DHT_SENSOR_TYPE );
-LiquidCrystal lcd (12,11,5,4,3,2);
-
-
 
 
 /*
@@ -60,8 +50,6 @@ void setup( )
 
   // start listening for clients
   server.begin();
-  //lcd setup
-  lcd.begin(16,2);
 }
 
 
@@ -69,18 +57,23 @@ void listenForEthernetClients() {
   // listen for incoming clients
   EthernetClient client = server.available();
   if (client) {
-    Serial.println("Got a client");
-    // an http request ends with a blank line
-    boolean currentLineIsBlank = true;
     while (client.connected()) {
       if (client.available()) {
+        boolean currentLineIsBlank = true;
         char c = client.read();
-        // if you've gotten to the end of the line (received a newline
-        // character) and the line is blank, the http request has ended,
-        // so you can send a reply
         if (c == '\n' && currentLineIsBlank) {
-          // send a standard http response header
-          client.println("HTTP/1.1 200 OK");
+           //time_t rawtime;
+           //struct tm * timeinfo;
+           //time ( &rawtime );
+           //timeinfo = localtime ( &rawtime );
+           //client.println("HTTP/1.1 200 OK");
+           //client.println("Content-Type: application/json");
+           //client.println("{");
+           //client.println("\"temperature: \"" + String(temperature) + ',');
+           //client.println("\"humidity: \"" + String(humidity));
+           //client.println("\"datetime: \"" + String(asctime (timeinfo)));
+           //client.println("}");
+           client.println("HTTP/1.1 200 OK");
           client.println("Content-Type: text/html");
           client.println();
           // print the current readings, in HTML format:
@@ -102,11 +95,11 @@ void listenForEthernetClients() {
         }
       }
     }
+    }
     // give the web browser time to receive the data
     delay(1);
     // close the connection:
     client.stop();
-  }
 }
 
 
@@ -124,30 +117,11 @@ static bool measure_environment( float *temperature, float *humidity )
 }
 
 
-/**
- * Display lcd infos about temperature
- */
-void displayLcdInfos(float temperature, float humidity) {
-  if(IS_LCD_ON>0) {
-    lcd.clear();
-    lcd.setCursor(0,0);
-    lcd.print("T: ");
-    lcd.print(temperature);
-    lcd.print(" C");
-    lcd.setCursor(0,1);
-    lcd.print("H: ");
-    lcd.print(humidity);
-    lcd.print(" %");
-  }
-}
-
 /*
  * Main program loop.
  */
 void loop( )
 {
-  /* Measure temperature and humidity.  If the functions returns
-     true, then a measurement is available. */
   if( measure_environment( &temperature, &humidity ) == true )
   {
     Serial.print( "For Serial >>>>" );
@@ -156,7 +130,6 @@ void loop( )
     Serial.print( " deg. C, H = " );
     Serial.print( humidity, 1 );
     Serial.println( "%" );
-    displayLcdInfos(temperature, humidity);
     delay(TEMP_INTERVAL);
   }
   listenForEthernetClients();
